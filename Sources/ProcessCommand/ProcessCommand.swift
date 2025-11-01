@@ -241,11 +241,15 @@ extension Logger {
     static let process = Logger(subsystem: "com.processcommand", category: "process")
 }
 
-#if !canImport(CheckForError)
-/// Placeholder for CheckForError - implement based on your needs
+// Prefer positive checks with #if canImport(...) so the "normal" (module-present) path is first.
+// If the module exists it will be imported; otherwise a clear fallback is provided.
+
+#if canImport(CheckForError)
+import CheckForError
+#else
+/// Fallback for CheckForError — implement as needed
 struct CheckForError {
     func checkforerror(_ line: String) throws {
-        // Implement your error checking logic
         if line.lowercased().contains("error") {
             throw ProcessError.errorDetected(line)
         }
@@ -253,9 +257,12 @@ struct CheckForError {
 }
 #endif
 
-#if !canImport(SharedStrings)
-/// Placeholder for SharedStrings - implement based on your needs
+#if canImport(SharedStrings)
+import SharedStrings
+#else
+/// Fallback for SharedStrings — implement or replace with real strings
 struct SharedStrings {
+    static let shared = SharedStrings()
     let continueSyncSetup = "continue sync setup"
     let chooseErrorReportingMode = "choose error reporting mode"
     let continueSyncReset = "continue sync reset"
@@ -263,17 +270,22 @@ struct SharedStrings {
 }
 #endif
 
-#if !canImport(SharedReference)
-/// Placeholder for SharedReference - implement based on your needs
-final class SharedReference  {
+#if canImport(SharedReference)
+import SharedReference
+#else
+/// Fallback for SharedReference — lightweight placeholder
+@MainActor final class SharedReference {
     @MainActor static let shared = SharedReference()
     var process: Process?
     var errorobject: ErrorHandler?
+    private init() {}
 }
 #endif
 
-#if !canImport(ErrorHandler)
-/// Placeholder for ErrorHandler - implement based on your needs
+#if canImport(ErrorHandler)
+import ErrorHandler
+#else
+/// Fallback for ErrorHandler — simple alert-style logger
 final class ErrorHandler {
     func alert(error: Error) {
         print("Error: \(error)")
@@ -281,14 +293,19 @@ final class ErrorHandler {
 }
 #endif
 
-#if !canImport(ActorJottaUILogToFile)
-/// Placeholder for ActorJottaUILogToFile - implement based on your needs
+#if canImport(ActorJottaUILogToFile)
+import ActorJottaUILogToFile
+#else
+/// Fallback logger function for environments without the actor
 func ActorJottaUILogToFile(command: String, stringoutput: [String]) async {
-    print("Logging: \(command)")
+    print("[ActorJottaUILogToFile] \(command):")
+    for line in stringoutput { print(line) }
 }
 #endif
 
-#if !canImport(ProcessError)
+#if canImport(ProcessError)
+import ProcessError
+#else
 /// Process errors
 public enum ProcessError: Error {
     case errorDetected(String)
