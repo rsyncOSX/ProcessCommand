@@ -119,11 +119,6 @@ public final class ProcessCommand {
         arguments: [String]?,
         handlers: ProcessHandlersCommand
     ) {
-        /*
-         let processtermination: ([String]?, Bool) -> Void = { _, _ in
-             PackageLogger.process.info("ProcessCommand: Process terminated with default handler")
-         }
-          */
         self.init(
             command: command,
             arguments: arguments,
