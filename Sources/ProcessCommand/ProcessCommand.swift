@@ -140,8 +140,8 @@ public final class ProcessCommand {
             PackageLogger.process.warning("ProcessCommand: Missing command or arguments")
             return
         }
-
-        guard let executableURL = URL(string: "file://\(command)") else {
+        let executableURL = URL(fileURLWithPath: command)
+        guard FileManager.default.isExecutableFile(atPath: executableURL.path) else {
             throw CommandError.invalidExecutablePath(command)
         }
 
@@ -233,6 +233,16 @@ public final class ProcessCommand {
             if let str = NSString(data: data, encoding: String.Encoding.utf8.rawValue) {
                 str.enumerateLines { line, _ in
                     self.output.append(line)
+                    
+                    if self.errordiscovered == false {
+                        do {
+                            try self.handlers.checklineforerror(line)
+                        } catch let e {
+                            self.errordiscovered = true
+                            let error = e
+                            self.handlers.propogateerror(error)
+                        }
+                    }
                 }
             }
             outHandle.waitForDataInBackgroundAndNotify()
