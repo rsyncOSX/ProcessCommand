@@ -43,7 +43,6 @@ public struct ProcessHandlersCommand {
         checklineforerror: @escaping (String) throws -> Void,
         updateprocess: @escaping (Process?) -> Void,
         propogateerror: @escaping (Error) -> Void,
-        checkforerrorinrsyncoutput _: Bool,
         rsyncui: Bool
     ) {
         self.processtermination = processtermination
