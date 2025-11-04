@@ -35,6 +35,8 @@ public struct ProcessHandlersCommand {
     public var updateprocess: (Process?) -> Void
     /// Propagates errors to error handler
     public var propogateerror: (Error) -> Void
+    // Async logger
+    public var logger: (String, [String]) async -> Void
     /// Flag for version 3.x of rsync or not
     public var rsyncui: Bool = true
     /// Initialize ProcessHandlers with all required closures
@@ -43,12 +45,14 @@ public struct ProcessHandlersCommand {
         checklineforerror: @escaping (String) throws -> Void,
         updateprocess: @escaping (Process?) -> Void,
         propogateerror: @escaping (Error) -> Void,
+        logger: @escaping (String, [String]) async -> Void,
         rsyncui: Bool
     ) {
         self.processtermination = processtermination
         self.checklineforerror = checklineforerror
         self.updateprocess = updateprocess
         self.propogateerror = propogateerror
+        self.logger = logger
         self.rsyncui = rsyncui
     }
 }
@@ -300,15 +304,12 @@ public final class ProcessCommand {
     private func termination() async {
         handlers.processtermination(output, errordiscovered)
         // Log error in rsync output to file
-        // MUST FIX
-        /*
          if errordiscovered, let command {
              Task {
-                 await ActorJottaUILogToFile(command: command, stringoutput: output)
+                 await handlers.logger(command, output)
              }
          }
-         */
-        // Set current process to nil
+       // Set current process to nil
         handlers.updateprocess(nil)
         // Cancel Tasks
         sequenceFileHandlerTask?.cancel()
