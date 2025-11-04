@@ -149,10 +149,16 @@ public final class ProcessCommand {
         task.executableURL = executableURL
         task.arguments = arguments
 
-        let pipe = Pipe()
-        task.standardOutput = pipe
-        task.standardError = pipe
-        let outHandle = pipe.fileHandleForReading
+        // Pipe for stdin
+        let inputPipe = Pipe()
+        task.standardInput = inputPipe
+
+        // Pipe for stdout/stderr
+        let outputPipe = Pipe()
+        task.standardOutput = outputPipe
+        task.standardError = outputPipe
+        
+        let outHandle = outputPipe.fileHandleForReading
         outHandle.waitForDataInBackgroundAndNotify()
 
         let sequencefilehandler = NotificationCenter.default.notifications(
@@ -167,9 +173,9 @@ public final class ProcessCommand {
         sequenceFileHandlerTask = Task {
             for await _ in sequencefilehandler {
                 if rsyncui {
-                    await self.datahandle(pipe)
+                    await self.datahandle(outputPipe)
                 } else {
-                    await self.datahandlejottaui(pipe)
+                    await self.datahandlejottaui(outputPipe, inputPipe)
                 }
             }
             PackageLogger.process.info("ProcessCommand: sequenceFileHandlerTask completed")
@@ -183,7 +189,7 @@ public final class ProcessCommand {
 
                 var totalDrained = 0
                 while true {
-                    let data: Data = pipe.fileHandleForReading.availableData
+                    let data: Data = outputPipe.fileHandleForReading.availableData
                     if data.isEmpty {
                         PackageLogger.process.info("ProcessCommand: Drain complete - \(totalDrained) bytes total")
                         break
@@ -233,7 +239,7 @@ public final class ProcessCommand {
         }
     }
 
-    private func datahandlejottaui(_ pipe: Pipe) async {
+    private func datahandlejottaui(_ pipe: Pipe, _ inputPipe: Pipe) async {
         let outHandle = pipe.fileHandleForReading
         let data = outHandle.availableData
 
@@ -243,7 +249,7 @@ public final class ProcessCommand {
             str.enumerateLines { line, _ in
                 self.output.append(line)
                 // Handle interactive prompts
-                self.handleInteractivePrompts(line: line, pipe: pipe)
+                self.handleInteractivePrompts(line: line, inputPipe: inputPipe)
 
                 if self.errordiscovered == false, self.oneargumentisjsonordump?.count == 0 {
                     do {
@@ -260,25 +266,26 @@ public final class ProcessCommand {
     }
 
     // For JottaUI
-    private func handleInteractivePrompts(line: String, pipe: Pipe) {
+    private func handleInteractivePrompts(line: String, inputPipe: Pipe) {
+                
         if line.contains(strings.continueSyncSetup) {
             let reply = input ?? "yes"
-            pipe.fileHandleForWriting.write((reply + "\n").data(using: .utf8)!)
+            inputPipe.fileHandleForWriting.write((reply + "\n").data(using: .utf8)!)
         }
 
         if line.contains(strings.chooseErrorReportingMode) {
             let reply = syncmode ?? "full"
-            pipe.fileHandleForWriting.write((reply + "\n").data(using: .utf8)!)
+            inputPipe.fileHandleForWriting.write((reply + "\n").data(using: .utf8)!)
         }
 
         if line.contains(strings.continueSyncReset) {
             let reply = input ?? "y"
-            pipe.fileHandleForWriting.write((reply + "\n").data(using: .utf8)!)
+            inputPipe.fileHandleForWriting.write((reply + "\n").data(using: .utf8)!)
         }
 
         if line.contains(strings.theExistingSyncFolderOnJottacloudCom) {
             let reply = input ?? "n"
-            pipe.fileHandleForWriting.write((reply + "\n").data(using: .utf8)!)
+            inputPipe.fileHandleForWriting.write((reply + "\n").data(using: .utf8)!)
         }
     }
 
