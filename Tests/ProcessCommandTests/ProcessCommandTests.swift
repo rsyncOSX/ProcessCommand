@@ -2,6 +2,29 @@ import Testing
 @testable import ProcessCommand
 import Foundation
 
+actor ActorToFile {
+    private func logging(command _: String, stringoutput: [String]) async {
+        var logfile: String?
+
+        if logfile == nil {
+            logfile = stringoutput.joined(separator: "\n")
+        } else {
+            logfile! += stringoutput.joined(separator: "\n")
+        }
+        if let logfile {
+            print(logfile)
+        }
+    }
+
+    @discardableResult
+    init(_ command: String, _ stringoutput: [String]?) async {
+        if let stringoutput {
+            await logging(command: command, stringoutput: stringoutput)
+        }
+    }
+}
+
+
 @MainActor
 struct ProcessCommandTests {
     // Actor-based mock to safely handle state from asynchronous callbacks.
@@ -43,6 +66,9 @@ struct ProcessCommandTests {
                 },
                 propogateerror: { error in
                     Task { self.didPropagateError(error) }
+                },
+                logger: { command, output in
+                    _  = await ActorToFile(command, output)
                 },
                 rsyncui: false // Use the `jottaui` path for more comprehensive testing.
             )
