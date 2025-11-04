@@ -69,8 +69,6 @@ public final class ProcessCommand {
     public private(set) var output = [String]()
     /// Whether an error was discovered during execution
     public private(set) var errordiscovered: Bool = false
-    /// RsyncUI or JottaUI
-    public var rsyncui: Bool = true
 
     // MARK: - Private Properties
 
@@ -172,7 +170,7 @@ public final class ProcessCommand {
 
         sequenceFileHandlerTask = Task {
             for await _ in sequencefilehandler {
-                if rsyncui {
+                if handlers.rsyncui {
                     await self.datahandle(outputPipe)
                 } else {
                     await self.datahandlejottaui(outputPipe, inputPipe)
