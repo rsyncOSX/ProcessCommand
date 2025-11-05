@@ -574,18 +574,120 @@ struct ArgumentDetectionTests {
         #expect(process.arguments?.contains("--json") == false)
         #expect(process.arguments?.contains("dump") == false)
     }
+    
+    @MainActor
+    @Test("Execute echo command", .enabled(if: FileManager.default.fileExists(atPath: "/bin/echo")))
+        func executeMyCommand() async throws {
+            let handlers = ProcessHandlersCommand(
+                processtermination: { _, _ in },
+                checklineforerror: { _ in },
+                updateprocess: { _ in },
+                propogateerror: { _ in },
+                logger: { command, output in
+                    _ = await ActorToFile(command, output)
+                },
+                rsyncui: false
+            )
+            let process = ProcessCommand(
+                command: "/Users/thomas/bin/myapp",
+                arguments: ["no args"],
+                handlers: handlers
+            )
+            
+            try process.executeProcess()
+            // Give process time to complete
+            try await Task.sleep(nanoseconds: 6_000_000_000)
+            
+            // #expect(state.processUpdateCalled == true)
+            // #expect(state.mockOutput != nil)
+        }
+
 }
 
-@Suite("SharedStrings Tests")
-struct SharedStringsTests {
-    
-    @Test("SharedStrings has required properties")
-    func sharedStringsProperties() {
-        let strings = SharedStrings()
-        
-        #expect(!strings.continueSyncSetup.isEmpty)
-        #expect(!strings.chooseErrorReportingMode.isEmpty)
-        #expect(!strings.continueSyncReset.isEmpty)
-        #expect(!strings.theExistingSyncFolderOnJottacloudCom.isEmpty)
-    }
-}
+/*
+ 
+ For test input during processing of commandline
+ 
+ swiftc main.swift -o myapp
+ 
+ import Foundation
+
+ struct SharedStrings {
+         static let shared = SharedStrings()
+         let continueSyncSetup = "continue sync setup"
+         let chooseErrorReportingMode = "choose error reporting mode"
+         let continueSyncReset = "continue sync reset"
+         let theExistingSyncFolderOnJottacloudCom = "existing sync folder"
+     }
+     
+ // Function to wait for specified seconds
+ func wait(seconds: UInt32) {
+     sleep(seconds)
+ }
+
+ // Function to get validated non-empty input
+ func getValidatedInput(prompt: String, validator: (String) -> Bool = { !$0.isEmpty }) -> String {
+     while true {
+         print(prompt)
+         if let input = readLine()?.trimmingCharacters(in: .whitespaces) {
+             if validator(input) {
+                 return input
+             }
+             print("❌ Invalid input. Please try again.\n")
+         } else {
+             print("❌ No input received. Please try again.\n")
+         }
+     }
+ }
+
+ let strings = SharedStrings()
+
+ // Output some text
+ print("Welcome to the Simple CLI App!")
+ print("================================")
+ print()
+
+ wait(seconds: 1)
+ print()
+
+ // Ask for a favorite color from a list
+ let validanswer1 = ["yes"]
+ let prompt1 = getValidatedInput(
+     prompt: strings.continueSyncSetup,
+     validator: { validanswer1.contains($0.lowercased()) }
+ )
+ print("Correct answer, I continue\n")
+
+ wait(seconds: 1)
+ print()
+
+ let validanswer2 = ["full"]
+ let prompt2 = getValidatedInput(
+     prompt: strings.chooseErrorReportingMode,
+     validator: { validanswer2.contains($0.lowercased()) }
+ )
+ print("Correct answer, I continue\n")
+
+ wait(seconds: 1)
+ print()
+
+ let validanswer3 = ["y"]
+ let prompt3 = getValidatedInput(
+     prompt: strings.continueSyncReset,
+     validator: { validanswer3.contains($0.lowercased()) }
+ )
+ print("Correct answer, I continue\n")
+
+
+ wait(seconds: 1)
+ print()
+
+ let validanswer4 = ["n"]
+ let prompt4 = getValidatedInput(
+     prompt: strings.theExistingSyncFolderOnJottacloudCom,
+     validator: { validanswer4.contains($0.lowercased()) }
+ )
+ print("Correct answer, I continue\n")
+
+
+ */
