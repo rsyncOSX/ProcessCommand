@@ -2,6 +2,17 @@ import Testing
 @testable import ProcessCommand
 import Foundation
 
+enum JottaCliError: LocalizedError {
+    case clierror
+
+    var errorDescription: String? {
+        switch self {
+        case .clierror:
+            "There are errors in output from Jotta-cli"
+        }
+    }
+}
+
 actor ActorToFile {
     private func logging(command _: String, stringoutput: [String]) async {
         var logfile: String?
@@ -494,7 +505,7 @@ struct ProcessHandlersCommandConfigurationTests {
             processtermination: { _, _ in },
             checklineforerror: { line in
                 if line.contains("ERROR") {
-                    throw NSError(domain: "TestError", code: 1)
+                    throw JottaCliError.clierror
                 }
             },
             updateprocess: { _ in },
@@ -580,7 +591,12 @@ struct ArgumentDetectionTests {
         func executeMyCommand() async throws {
             let handlers = ProcessHandlersCommand(
                 processtermination: { _, _ in },
-                checklineforerror: { _ in },
+                checklineforerror: { line in
+                    let error = line.contains("Error") || line.contains("error")
+                    if error {
+                        throw JottaCliError.clierror
+                    }
+                },
                 updateprocess: { _ in },
                 propogateerror: { _ in },
                 logger: { command, output in
@@ -688,6 +704,10 @@ struct ArgumentDetectionTests {
      validator: { validanswer4.contains($0.lowercased()) }
  )
  print("Correct answer, I continue\n")
+
+ wait(seconds: 1)
+
+ print("This is an error\n")
 
 
  */
