@@ -54,7 +54,7 @@ struct ProcessCommandTests {
     // MARK: - Helper Methods
     
     func createMockHandlers(
-        rsyncui: Bool = true,
+        rsyncui: Bool = false,
         shouldThrowError: Bool = false,
         state: TestState
     ) -> ProcessHandlersCommand {
@@ -227,7 +227,6 @@ struct ProcessCommandTests {
         var errorCheckCalled = false
         var updateCalled = false
         var errorPropagatedCalled = false
-        var loggerCalledFlag = false
         
         let handlers = ProcessHandlersCommand(
             processtermination: { _, _ in terminationCalled = true },
