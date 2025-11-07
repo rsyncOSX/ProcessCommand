@@ -95,3 +95,46 @@ wait(seconds: 1)
 print("This is an error\n")
 
 ```
+
+The actual test is located at the bottom of the test code. The test generates data that are processed by the AsyncSequence, which reads the output from the datahandle. The `processtest` also requires input to continue. The ProcessCommand recognizes the input and writes the answer to an inputhandle. Additionally, the ProcessCommand checks if there are words *error* or *Error* in the output and takes appropriate action. The final print statement in `processtest` outputs a line containing *error*, prompting the ProcessCommand to utilize the `logger`, which simply prints all input to the console.  This test verify that the ProcessCommand act on input.
+
+```
+@MainActor
+    @Test("Execute handling input - JottaUI")
+        func executeMyCommand() async throws {
+            let testAppPath = pathInHomeTmp(for: "processtest")
+                // If not, skip the test.
+                guard FileManager.default.fileExists(atPath: testAppPath) else {
+                    // Throws a Skip error, marking the test as "Skipped".
+                    // try Skip("Test executable not found at \(testAppPath)")
+                    return
+                }
+            let handlers = ProcessHandlersCommand(
+                processtermination: { _, _ in },
+                checklineforerror: { line in
+                    let error = line.contains("Error") || line.contains("error")
+                    if error {
+                        throw JottaCliError.clierror
+                    }
+                },
+                updateprocess: { _ in },
+                propogateerror: { _ in },
+                logger: { command, output in
+                    _ = await ActorToFile(command, output)
+                },
+                rsyncui: false
+            )
+            let process = ProcessCommand(
+                command: testAppPath,
+                arguments: ["no args"],
+                handlers: handlers
+            )
+            
+            try process.executeProcess()
+            // Give process time to complete
+            try await Task.sleep(nanoseconds: 6_000_000_000)
+            
+            // #expect(state.processUpdateCalled == true)
+            // #expect(state.mockOutput != nil)
+        }
+```
