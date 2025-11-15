@@ -25,40 +25,7 @@ public enum CommandError: LocalizedError {
     }
 }
 
-/// Handlers for process execution callbacks
-public struct ProcessHandlersCommand {
-    /// Called when process terminates with output and hiddenID
-    public var processtermination: ([String]?, Bool) -> Void
-    /// Checks a line for errors and throws if found
-    public var checklineforerror: (String) throws -> Void
-    /// Updates the current process reference
-    public var updateprocess: (Process?) -> Void
-    /// Propagates errors to error handler
-    public var propogateerror: (Error) -> Void
-    // Async logger
-    public var logger: (String, [String]) async -> Void
-    /// Flag for version 3.x of rsync or not
-    public var rsyncui: Bool = true
-    /// Initialize ProcessHandlers with all required closures
-    public init(
-        processtermination: @escaping ([String]?, Bool) -> Void,
-        checklineforerror: @escaping (String) throws -> Void,
-        updateprocess: @escaping (Process?) -> Void,
-        propogateerror: @escaping (Error) -> Void,
-        logger: @escaping (String, [String]) async -> Void,
-        rsyncui: Bool
-    ) {
-        self.processtermination = processtermination
-        self.checklineforerror = checklineforerror
-        self.updateprocess = updateprocess
-        self.propogateerror = propogateerror
-        self.logger = logger
-        self.rsyncui = rsyncui
-    }
-}
-
 /// A module for executing and managing system processes with async output handling
-@MainActor
 public final class ProcessCommand {
     // Process handlers
     let handlers: ProcessHandlersCommand
@@ -131,7 +98,7 @@ public final class ProcessCommand {
     }
 
     deinit {
-        PackageLogger.process.info("ProcessHandlers: DEINIT")
+        Logger.process.info("ProcessHandlers: DEINIT")
     }
 
     // MARK: - Public Methods
@@ -139,7 +106,7 @@ public final class ProcessCommand {
     /// Execute the configured process
     public func executeProcess() throws {
         guard let command, let arguments, !arguments.isEmpty else {
-            PackageLogger.process.warning("ProcessCommand: Missing command or arguments")
+            Logger.process.warning("ProcessCommand: Missing command or arguments")
             return
         }
         let executableURL = URL(fileURLWithPath: command)
@@ -173,6 +140,7 @@ public final class ProcessCommand {
         )
 
         sequenceFileHandlerTask = Task {
+            Logger.process.info("ProcessHandlers: MAIN THREAD: \(Thread.isMain, privacy: .public) but on \(Thread.current, privacy: .public)")
             for await _ in sequencefilehandler {
                 if handlers.rsyncui {
                     await self.datahandle(outputPipe)
@@ -180,12 +148,14 @@ public final class ProcessCommand {
                     await self.datahandlejottaui(outputPipe, inputPipe)
                 }
             }
-            PackageLogger.process.info("ProcessCommand: sequenceFileHandlerTask completed")
+            Logger.process.info("ProcessCommand: sequenceFileHandlerTask completed")
         }
 
         sequenceTerminationTask = Task {
+            Logger.process.info("ProcessHandlers: MAIN THREAD: \(Thread.isMain, privacy: .public) but on \(Thread.current, privacy: .public)")
             for await _ in sequencetermination {
-                PackageLogger.process.info("ProcessCommand: Process terminated - starting drain")
+                Logger.process.info("ProcessCommand: Process terminated - starting drain")
+                
                 sequenceFileHandlerTask?.cancel()
                 try? await Task.sleep(nanoseconds: 50_000_000)
 
@@ -193,15 +163,15 @@ public final class ProcessCommand {
                 while true {
                     let data: Data = outputPipe.fileHandleForReading.availableData
                     if data.isEmpty {
-                        PackageLogger.process.info("ProcessCommand: Drain complete - \(totalDrained) bytes total")
+                        Logger.process.info("ProcessCommand: Drain complete - \(totalDrained) bytes total")
                         break
                     }
 
                     totalDrained += data.count
-                    PackageLogger.process.info("ProcessCommand: Draining \(data.count) bytes")
+                    Logger.process.info("ProcessCommand: Draining \(data.count) bytes")
 
                     if let text = String(data: data, encoding: .utf8) {
-                        PackageLogger.process.info("ProcessCommand: Drained text available")
+                        Logger.process.info("ProcessCommand: Drained text available")
                         self.output.append(text)
                     }
                 }
@@ -216,8 +186,8 @@ public final class ProcessCommand {
         do {
             try task.run()
             if let launchPath = task.launchPath, let arguments = task.arguments {
-                PackageLogger.process.info("ProcessCommand: command - \(launchPath, privacy: .public)")
-                PackageLogger.process.info("ProcessCommand: arguments - \(arguments.joined(separator: "\n"), privacy: .public)")
+                Logger.process.info("ProcessCommand: command - \(launchPath, privacy: .public)")
+                Logger.process.info("ProcessCommand: arguments - \(arguments.joined(separator: "\n"), privacy: .public)")
             }
         } catch let e {
             let error = e
@@ -316,25 +286,7 @@ public final class ProcessCommand {
         sequenceTerminationTask?.cancel()
         // await sequenceFileHandlerTask?.value
         // await sequenceTerminationTask?.value
-        PackageLogger.process.info("ProcessHandlers: process = nil and termination discovered \(ThreadUtils.isMain, privacy: .public) but on \(Thread.current, privacy: .public)")
-    }
-}
-
-// ===================================
-// Sources/RsyncProcess/Internal/PackageLogger.swift
-// ===================================
-
-enum PackageLogger {
-    static let process = Logger(subsystem: "com.rsyncprocess", category: "process")
-}
-
-// ===================================
-// Sources/RsyncProcess/Internal/ThreadUtils.swift
-// ===================================
-
-enum ThreadUtils {
-    static var isMain: Bool {
-        Thread.isMainThread
+        Logger.process.info("ProcessHandlers: process = nil and termination discovered \(Thread.isMain, privacy: .public) but on \(Thread.current, privacy: .public)")
     }
 }
 
