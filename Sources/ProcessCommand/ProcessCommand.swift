@@ -98,7 +98,7 @@ public final class ProcessCommand {
     }
 
     deinit {
-        Logger.process.info("ProcessHandlers: DEINIT")
+        Logger.process.debugmesseageonly("ProcessHandlers: DEINIT")
     }
 
     // MARK: - Public Methods
@@ -140,11 +140,7 @@ public final class ProcessCommand {
         )
 
         sequenceFileHandlerTask = Task {
-            if Thread.checkIsMainThread() {
-                Logger.process.info("RsyncProcess: sequenceFileHandlerTask Running on main thread")
-            } else {
-                Logger.process.info("RsyncProcess: sequenceFileHandlerTask NOT on main thread, currently on \(Thread.current, privacy: .public)")
-            }
+            Logger.process.debugtthreadonly("ProcessCommand: sequenceFileHandlerTask")
             for await _ in sequencefilehandler {
                 if handlers.rsyncui {
                     await self.datahandle(outputPipe)
@@ -152,17 +148,13 @@ public final class ProcessCommand {
                     await self.datahandlejottaui(outputPipe, inputPipe)
                 }
             }
-            Logger.process.info("ProcessCommand: sequenceFileHandlerTask completed")
+            Logger.process.debugmesseageonly("ProcessCommand: sequenceFileHandlerTask completed")
         }
 
         sequenceTerminationTask = Task {
-            if Thread.checkIsMainThread() {
-                Logger.process.info("RsyncProcess: sequenceTerminationTask Running on main thread")
-            } else {
-                Logger.process.info("RsyncProcess: sequenceTerminationTask NOT on main thread, currently on \(Thread.current, privacy: .public)")
-            }
+            Logger.process.debugtthreadonly("sequenceTerminationTask: sequenceFileHandlerTask")
             for await _ in sequencetermination {
-                Logger.process.info("ProcessCommand: Process terminated - starting drain")
+                Logger.process.debugmesseageonly("ProcessCommand: Process terminated - starting drain")
                 
                 sequenceFileHandlerTask?.cancel()
                 try? await Task.sleep(nanoseconds: 50_000_000)
@@ -171,15 +163,15 @@ public final class ProcessCommand {
                 while true {
                     let data: Data = outputPipe.fileHandleForReading.availableData
                     if data.isEmpty {
-                        Logger.process.info("ProcessCommand: Drain complete - \(totalDrained) bytes total")
+                        Logger.process.debugmesseageonly("ProcessCommand: Drain complete - \(totalDrained) bytes total")
                         break
                     }
 
                     totalDrained += data.count
-                    Logger.process.info("ProcessCommand: Draining \(data.count) bytes")
+                    Logger.process.debugmesseageonly("ProcessCommand: Draining \(data.count) bytes")
 
                     if let text = String(data: data, encoding: .utf8) {
-                        Logger.process.info("ProcessCommand: Drained text available")
+                        Logger.process.debugmesseageonly("ProcessCommand: Drained text available")
                         self.output.append(text)
                     }
                 }
@@ -194,8 +186,8 @@ public final class ProcessCommand {
         do {
             try task.run()
             if let launchPath = task.launchPath, let arguments = task.arguments {
-                Logger.process.info("ProcessCommand: command - \(launchPath, privacy: .public)")
-                Logger.process.info("ProcessCommand: arguments - \(arguments.joined(separator: "\n"), privacy: .public)")
+                Logger.process.debugmesseageonly("ProcessCommand: command - \(launchPath)")
+                Logger.process.debugmesseageonly("ProcessCommand: arguments - \(arguments.joined(separator: "\n"))")
             }
         } catch let e {
             let error = e
@@ -294,7 +286,7 @@ public final class ProcessCommand {
         sequenceTerminationTask?.cancel()
         // await sequenceFileHandlerTask?.value
         // await sequenceTerminationTask?.value
-        Logger.process.info("ProcessHandlers: process = nil and termination discovered \(Thread.isMain, privacy: .public) but on \(Thread.current, privacy: .public)")
+        Logger.process.debugtthreadonly("ProcessHandlers: process = nil and termination discovered")
     }
 }
 
