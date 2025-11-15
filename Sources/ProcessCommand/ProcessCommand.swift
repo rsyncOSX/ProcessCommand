@@ -140,7 +140,11 @@ public final class ProcessCommand {
         )
 
         sequenceFileHandlerTask = Task {
-            Logger.process.info("ProcessHandlers: MAIN THREAD: \(Thread.isMain, privacy: .public) but on \(Thread.current, privacy: .public)")
+            if Thread.checkIsMainThread() {
+                Logger.process.info("RsyncProcess: sequenceFileHandlerTask Running on main thread")
+            } else {
+                Logger.process.info("RsyncProcess: sequenceFileHandlerTask NOT on main thread, currently on \(Thread.current, privacy: .public)")
+            }
             for await _ in sequencefilehandler {
                 if handlers.rsyncui {
                     await self.datahandle(outputPipe)
@@ -152,7 +156,11 @@ public final class ProcessCommand {
         }
 
         sequenceTerminationTask = Task {
-            Logger.process.info("ProcessHandlers: MAIN THREAD: \(Thread.isMain, privacy: .public) but on \(Thread.current, privacy: .public)")
+            if Thread.checkIsMainThread() {
+                Logger.process.info("RsyncProcess: sequenceTerminationTask Running on main thread")
+            } else {
+                Logger.process.info("RsyncProcess: sequenceTerminationTask NOT on main thread, currently on \(Thread.current, privacy: .public)")
+            }
             for await _ in sequencetermination {
                 Logger.process.info("ProcessCommand: Process terminated - starting drain")
                 
