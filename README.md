@@ -1,5 +1,7 @@
 ## Hi there 👋
 
+Version 2.0.0
+
 This package is code for monitoring other commands process in RsyncUI.
 
 The package is used in [RsyncUI](https://github.com/rsyncOSX/RsyncUI) and [JottaUI](https://github.com/rsyncOSX/JottaUI) which is a monitoring tool onto of JottaCloud `jotta-cli` tool. 
