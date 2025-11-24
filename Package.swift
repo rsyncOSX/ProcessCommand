@@ -25,7 +25,7 @@ let package = Package(
         ),
     ]
 )
-
+/*
 for target in package.targets {
   var settings = target.swiftSettings ?? []
   settings.append(contentsOf: [
@@ -35,3 +35,4 @@ for target in package.targets {
   ])
   target.swiftSettings = settings
 }
+*/
