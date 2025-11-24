@@ -26,6 +26,7 @@ public enum CommandError: LocalizedError {
 }
 
 /// A module for executing and managing system processes with async output handling
+@MainActor
 public final class ProcessCommand {
     // Process handlers
     let handlers: ProcessHandlersCommand
