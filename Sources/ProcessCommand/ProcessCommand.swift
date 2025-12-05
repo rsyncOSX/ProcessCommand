@@ -127,7 +127,7 @@ public final class ProcessCommand {
         let outputPipe = Pipe()
         task.standardOutput = outputPipe
         task.standardError = outputPipe
-        
+
         let outHandle = outputPipe.fileHandleForReading
         outHandle.waitForDataInBackgroundAndNotify()
 
@@ -156,7 +156,7 @@ public final class ProcessCommand {
             Logger.process.debugtthreadonly("sequenceTerminationTask: sequenceFileHandlerTask")
             for await _ in sequencetermination {
                 Logger.process.debugmesseageonly("ProcessCommand: Process terminated - starting drain")
-                
+
                 sequenceFileHandlerTask?.cancel()
                 try? await Task.sleep(nanoseconds: 50_000_000)
 
@@ -206,7 +206,7 @@ public final class ProcessCommand {
             if let str = NSString(data: data, encoding: String.Encoding.utf8.rawValue) {
                 str.enumerateLines { line, _ in
                     self.output.append(line)
-                    
+
                     if self.errordiscovered == false {
                         do {
                             try self.handlers.checklineforerror(line)
@@ -250,7 +250,6 @@ public final class ProcessCommand {
 
     // For JottaUI
     private func handleInteractivePrompts(line: String, inputPipe: Pipe) {
-                
         if line.contains(strings.continueSyncSetup) {
             let reply = input ?? "yes"
             inputPipe.fileHandleForWriting.write((reply + "\n").data(using: .utf8)!)
@@ -275,12 +274,12 @@ public final class ProcessCommand {
     private func termination() async {
         handlers.processtermination(output, errordiscovered)
         // Log error in rsync output to file
-         if errordiscovered, let command {
-             Task {
-                 await handlers.logger(command, output)
-             }
-         }
-       // Set current process to nil
+        if errordiscovered, let command {
+            Task {
+                await handlers.logger(command, output)
+            }
+        }
+        // Set current process to nil
         handlers.updateprocess(nil)
         // Cancel Tasks
         sequenceFileHandlerTask?.cancel()

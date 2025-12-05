@@ -1,6 +1,6 @@
-import Testing
-@testable import ProcessCommand
 import Foundation
+@testable import ProcessCommand
+import Testing
 
 enum JottaCliError: LocalizedError {
     case clierror
@@ -45,44 +45,42 @@ private func pathInHomeTmp(for file: String) -> String {
 @MainActor
 @Suite("ProcessCommand Tests")
 struct ProcessCommandTests {
-    
     @MainActor
     @Test("Execute handling input - JottaUI")
-        func executeMyCommand() async throws {
-            let testAppPath = pathInHomeTmp(for: "processtest")
-                // If not, skip the test.
-                guard FileManager.default.fileExists(atPath: testAppPath) else {
-                    // Throws a Skip error, marking the test as "Skipped".
-                    // try Skip("Test executable not found at \(testAppPath)")
-                    return
-                }
-            let handlers = ProcessHandlersCommand(
-                processtermination: { _, _ in },
-                checklineforerror: { line in
-                    let error = line.contains("Error") || line.contains("error")
-                    if error {
-                        throw JottaCliError.clierror
-                    }
-                },
-                updateprocess: { _ in },
-                propogateerror: { _ in },
-                logger: { command, output in
-                    _ = await ActorToFile(command, output)
-                },
-                rsyncui: false
-            )
-            let process = ProcessCommand(
-                command: testAppPath,
-                arguments: ["no args"],
-                handlers: handlers
-            )
-            
-            try process.executeProcess()
-            // Give process time to complete
-            try await Task.sleep(nanoseconds: 6_000_000_000)
-            
-            // #expect(state.processUpdateCalled == true)
-            // #expect(state.mockOutput != nil)
+    func executeMyCommand() async throws {
+        let testAppPath = pathInHomeTmp(for: "processtest")
+        // If not, skip the test.
+        guard FileManager.default.fileExists(atPath: testAppPath) else {
+            // Throws a Skip error, marking the test as "Skipped".
+            // try Skip("Test executable not found at \(testAppPath)")
+            return
         }
+        let handlers = ProcessHandlersCommand(
+            processtermination: { _, _ in },
+            checklineforerror: { line in
+                let error = line.contains("Error") || line.contains("error")
+                if error {
+                    throw JottaCliError.clierror
+                }
+            },
+            updateprocess: { _ in },
+            propogateerror: { _ in },
+            logger: { command, output in
+                _ = await ActorToFile(command, output)
+            },
+            rsyncui: false
+        )
+        let process = ProcessCommand(
+            command: testAppPath,
+            arguments: ["no args"],
+            handlers: handlers
+        )
+
+        try process.executeProcess()
+        // Give process time to complete
+        try await Task.sleep(nanoseconds: 6_000_000_000)
+
+        // #expect(state.processUpdateCalled == true)
+        // #expect(state.mockOutput != nil)
+    }
 }
-    
