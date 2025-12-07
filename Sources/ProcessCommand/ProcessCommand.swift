@@ -252,22 +252,30 @@ public final class ProcessCommand {
     private func handleInteractivePrompts(line: String, inputPipe: Pipe) {
         if line.contains(strings.continueSyncSetup) {
             let reply = input ?? "yes"
-            inputPipe.fileHandleForWriting.write((reply + "\n").data(using: .utf8)!)
+            if let data = (reply + "\n").data(using: .utf8) {
+                inputPipe.fileHandleForWriting.write(data)
+            }
         }
 
         if line.contains(strings.chooseErrorReportingMode) {
             let reply = syncmode ?? "full"
-            inputPipe.fileHandleForWriting.write((reply + "\n").data(using: .utf8)!)
+            if let data = (reply + "\n").data(using: .utf8) {
+                inputPipe.fileHandleForWriting.write(data)
+            }
         }
 
         if line.contains(strings.continueSyncReset) {
             let reply = input ?? "y"
-            inputPipe.fileHandleForWriting.write((reply + "\n").data(using: .utf8)!)
+            if let data = (reply + "\n").data(using: .utf8) {
+                inputPipe.fileHandleForWriting.write(data)
+            }
         }
 
         if line.contains(strings.theExistingSyncFolderOnJottacloudCom) {
             let reply = input ?? "n"
-            inputPipe.fileHandleForWriting.write((reply + "\n").data(using: .utf8)!)
+            if let data = (reply + "\n").data(using: .utf8) {
+                inputPipe.fileHandleForWriting.write(data)
+            }
         }
     }
 

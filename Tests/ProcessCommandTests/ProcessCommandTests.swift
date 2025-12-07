@@ -20,7 +20,7 @@ actor ActorToFile {
         if logfile == nil {
             logfile = stringoutput.joined(separator: "\n")
         } else {
-            logfile! += stringoutput.joined(separator: "\n")
+            logfile = (logfile ?? "") + stringoutput.joined(separator: "\n")
         }
         if let logfile {
             print(logfile)
