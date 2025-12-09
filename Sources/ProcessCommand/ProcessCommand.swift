@@ -190,8 +190,8 @@ public final class ProcessCommand {
                 Logger.process.debugmesseageonly("ProcessCommand: command - \(launchPath)")
                 Logger.process.debugmesseageonly("ProcessCommand: arguments - \(arguments.joined(separator: "\n"))")
             }
-        } catch let e {
-            let error = e
+        } catch let err {
+            let error = err
             // SharedReference.shared.errorobject?.alert(error: error)
             handlers.propogateerror(error)
         }
@@ -210,9 +210,9 @@ public final class ProcessCommand {
                     if self.errordiscovered == false {
                         do {
                             try self.handlers.checklineforerror(line)
-                        } catch let e {
+                        } catch let err {
                             self.errordiscovered = true
-                            let error = e
+                            let error = err
                             self.handlers.propogateerror(error)
                         }
                     }
@@ -237,9 +237,9 @@ public final class ProcessCommand {
                 if self.errordiscovered == false, self.oneargumentisjsonordump?.count == 0 {
                     do {
                         try self.handlers.checklineforerror(line)
-                    } catch let e {
+                    } catch let err {
                         self.errordiscovered = true
-                        let error = e
+                        let error = err
                         self.handlers.propogateerror(error)
                     }
                 }
