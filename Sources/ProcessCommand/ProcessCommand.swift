@@ -280,6 +280,7 @@ public final class ProcessCommand {
     }
 
     private func termination() async {
+        Logger.process.debugtthreadonly("ProcessCommand: process = nil and termination discovered")
         handlers.processtermination(output, errordiscovered)
         // Log error in rsync output to file
         if errordiscovered, let command {
@@ -292,9 +293,8 @@ public final class ProcessCommand {
         // Cancel Tasks
         sequenceFileHandlerTask?.cancel()
         sequenceTerminationTask?.cancel()
-        // await sequenceFileHandlerTask?.value
-        // await sequenceTerminationTask?.value
-        Logger.process.debugtthreadonly("ProcessHandlers: process = nil and termination discovered")
+        sequenceFileHandlerTask = nil
+        sequenceTerminationTask = nil
     }
 }
 
