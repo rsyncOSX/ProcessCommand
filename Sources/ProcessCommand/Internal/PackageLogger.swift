@@ -13,7 +13,7 @@ extension Logger {
         category: "process"
     )
 
-    nonisolated func debugmesseageonly(_ message: String) {
+    nonisolated func debugmessageonly(_ message: String) {
         #if DEBUG
             debug("\(message)")
         #endif

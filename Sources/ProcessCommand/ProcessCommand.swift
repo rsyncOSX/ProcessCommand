@@ -99,7 +99,7 @@ public final class ProcessCommand {
     }
 
     deinit {
-        Logger.process.debugmesseageonly("ProcessHandlers: DEINIT")
+        Logger.process.debugmessageonly("ProcessHandlers: DEINIT")
     }
 
     // MARK: - Public Methods
@@ -149,13 +149,13 @@ public final class ProcessCommand {
                     await self.datahandlejottaui(outputPipe, inputPipe)
                 }
             }
-            Logger.process.debugmesseageonly("ProcessCommand: sequenceFileHandlerTask completed")
+            Logger.process.debugmessageonly("ProcessCommand: sequenceFileHandlerTask completed")
         }
 
         sequenceTerminationTask = Task {
             Logger.process.debugtthreadonly("sequenceTerminationTask: sequenceFileHandlerTask")
             for await _ in sequencetermination {
-                Logger.process.debugmesseageonly("ProcessCommand: Process terminated - starting drain")
+                Logger.process.debugmessageonly("ProcessCommand: Process terminated - starting drain")
 
                 sequenceFileHandlerTask?.cancel()
                 try? await Task.sleep(nanoseconds: 50_000_000)
@@ -164,15 +164,15 @@ public final class ProcessCommand {
                 while true {
                     let data: Data = outputPipe.fileHandleForReading.availableData
                     if data.isEmpty {
-                        Logger.process.debugmesseageonly("ProcessCommand: Drain complete - \(totalDrained) bytes total")
+                        Logger.process.debugmessageonly("ProcessCommand: Drain complete - \(totalDrained) bytes total")
                         break
                     }
 
                     totalDrained += data.count
-                    Logger.process.debugmesseageonly("ProcessCommand: Draining \(data.count) bytes")
+                    Logger.process.debugmessageonly("ProcessCommand: Draining \(data.count) bytes")
 
                     if let text = String(data: data, encoding: .utf8) {
-                        Logger.process.debugmesseageonly("ProcessCommand: Drained text available")
+                        Logger.process.debugmessageonly("ProcessCommand: Drained text available")
                         self.output.append(text)
                     }
                 }
@@ -187,8 +187,8 @@ public final class ProcessCommand {
         do {
             try task.run()
             if let launchPath = task.launchPath, let arguments = task.arguments {
-                Logger.process.debugmesseageonly("ProcessCommand: command - \(launchPath)")
-                Logger.process.debugmesseageonly("ProcessCommand: arguments - \(arguments.joined(separator: "\n"))")
+                Logger.process.debugmessageonly("ProcessCommand: command - \(launchPath)")
+                Logger.process.debugmessageonly("ProcessCommand: arguments - \(arguments.joined(separator: "\n"))")
             }
         } catch let err {
             let error = err
