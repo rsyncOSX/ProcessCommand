@@ -131,6 +131,26 @@ public final class ProcessCommand {
         let outHandle = outputPipe.fileHandleForReading
         outHandle.waitForDataInBackgroundAndNotify()
 
+        setupAsyncTasks(outputPipe, inputPipe, task)
+        handlers.updateprocess(task)
+
+        do {
+            try task.run()
+            if let launchPath = task.launchPath, let arguments = task.arguments {
+                Logger.process.debugmessageonly("ProcessCommand: command - \(launchPath)")
+                Logger.process.debugmessageonly("ProcessCommand: arguments - \(arguments.joined(separator: "\n"))")
+            }
+        } catch let err {
+            let error = err
+            handlers.propogateerror(error)
+        }
+    }
+
+    // MARK: - Private Methods
+
+    private func setupAsyncTasks(_ outputPipe: Pipe, _ inputPipe: Pipe, _ task: Process) {
+        let outHandle = outputPipe.fileHandleForReading
+
         let sequencefilehandler = NotificationCenter.default.notifications(
             named: NSNotification.Name.NSFileHandleDataAvailable,
             object: outHandle
@@ -180,24 +200,7 @@ public final class ProcessCommand {
                 await self.termination()
             }
         }
-
-        // Update current process task
-        handlers.updateprocess(task)
-
-        do {
-            try task.run()
-            if let launchPath = task.launchPath, let arguments = task.arguments {
-                Logger.process.debugmessageonly("ProcessCommand: command - \(launchPath)")
-                Logger.process.debugmessageonly("ProcessCommand: arguments - \(arguments.joined(separator: "\n"))")
-            }
-        } catch let err {
-            let error = err
-            // SharedReference.shared.errorobject?.alert(error: error)
-            handlers.propogateerror(error)
-        }
     }
-
-    // MARK: - Private Methods
 
     private func datahandle(_ pipe: Pipe) async {
         let outHandle = pipe.fileHandleForReading
