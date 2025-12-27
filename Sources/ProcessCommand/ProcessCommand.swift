@@ -44,7 +44,11 @@ public final class ProcessCommand {
 
     // MARK: - Private Properties
 
-    private var oneargumentisjsonordump: [Bool]?
+    private var hasJSONOrDump: Bool {
+        arguments?.contains { arg in
+            arg.contains("--json") || arg.contains("dump")
+        } ?? false
+    }
     private var sequenceFileHandlerTask: Task<Void, Never>?
     private var sequenceTerminationTask: Task<Void, Never>?
     private var input: String?
@@ -75,9 +79,6 @@ public final class ProcessCommand {
         self.handlers = handlers
         self.syncmode = syncmode
         self.input = input
-        oneargumentisjsonordump = arguments?.compactMap { line in
-            line.contains("--json") || line.contains("dump") ? true : nil
-        }
     }
 
     /// Convenience initializer with default termination handler
@@ -107,8 +108,7 @@ public final class ProcessCommand {
     /// Execute the configured process
     public func executeProcess() throws {
         guard let command, let arguments, !arguments.isEmpty else {
-            Logger.process.warning("ProcessCommand: Missing command or arguments")
-            return
+            throw CommandError.executableNotFound
         }
         let executableURL = URL(fileURLWithPath: command)
         guard FileManager.default.isExecutableFile(atPath: executableURL.path) else {
@@ -128,20 +128,19 @@ public final class ProcessCommand {
         task.standardOutput = outputPipe
         task.standardError = outputPipe
 
-        let outHandle = outputPipe.fileHandleForReading
-        outHandle.waitForDataInBackgroundAndNotify()
-
-        setupAsyncTasks(outputPipe, inputPipe, task)
-        handlers.updateprocess(task)
-
         do {
             try task.run()
             if let launchPath = task.launchPath, let arguments = task.arguments {
                 Logger.process.debugmessageonly("ProcessCommand: command - \(launchPath)")
                 Logger.process.debugmessageonly("ProcessCommand: arguments - \(arguments.joined(separator: "\n"))")
             }
+            outputPipe.fileHandleForReading.waitForDataInBackgroundAndNotify()
+            setupAsyncTasks(outputPipe, inputPipe, task)
+            handlers.updateprocess(task)
         } catch let err {
             let error = err
+            inputPipe.fileHandleForWriting.closeFile()
+            outputPipe.fileHandleForReading.closeFile()
             handlers.propogateerror(error)
         }
     }
@@ -205,24 +204,28 @@ public final class ProcessCommand {
     private func datahandle(_ pipe: Pipe) async {
         let outHandle = pipe.fileHandleForReading
         let data = outHandle.availableData
-        if data.count > 0 {
-            if let str = NSString(data: data, encoding: String.Encoding.utf8.rawValue) {
-                str.enumerateLines { line, _ in
-                    self.output.append(line)
+        guard data.count > 0 else { return }
 
-                    if self.errordiscovered == false {
-                        do {
-                            try self.handlers.checklineforerror(line)
-                        } catch let err {
-                            self.errordiscovered = true
-                            let error = err
-                            self.handlers.propogateerror(error)
-                        }
-                    }
+        guard let str = String(data: data, encoding: .utf8) else {
+            self.errordiscovered = true
+            self.handlers.propogateerror(CommandError.outputEncodingFailed)
+            return
+        }
+
+        str.enumerateLines { line, _ in
+            self.output.append(line)
+
+            if self.errordiscovered == false {
+                do {
+                    try self.handlers.checklineforerror(line)
+                } catch let err {
+                    self.errordiscovered = true
+                    let error = err
+                    self.handlers.propogateerror(error)
                 }
             }
-            outHandle.waitForDataInBackgroundAndNotify()
         }
+        outHandle.waitForDataInBackgroundAndNotify()
     }
 
     private func datahandlejottaui(_ pipe: Pipe, _ inputPipe: Pipe) async {
@@ -231,20 +234,24 @@ public final class ProcessCommand {
 
         guard data.count > 0 else { return }
 
-        if let str = NSString(data: data, encoding: String.Encoding.utf8.rawValue) {
-            str.enumerateLines { line, _ in
-                self.output.append(line)
-                // Handle interactive prompts
-                self.handleInteractivePrompts(line: line, inputPipe: inputPipe)
+        guard let str = String(data: data, encoding: .utf8) else {
+            self.errordiscovered = true
+            self.handlers.propogateerror(CommandError.outputEncodingFailed)
+            return
+        }
 
-                if self.errordiscovered == false, self.oneargumentisjsonordump?.count == 0 {
-                    do {
-                        try self.handlers.checklineforerror(line)
-                    } catch let err {
-                        self.errordiscovered = true
-                        let error = err
-                        self.handlers.propogateerror(error)
-                    }
+        str.enumerateLines { line, _ in
+            self.output.append(line)
+            // Handle interactive prompts
+            self.handleInteractivePrompts(line: line, inputPipe: inputPipe)
+
+            if self.errordiscovered == false, self.hasJSONOrDump == false {
+                do {
+                    try self.handlers.checklineforerror(line)
+                } catch let err {
+                    self.errordiscovered = true
+                    let error = err
+                    self.handlers.propogateerror(error)
                 }
             }
         }
@@ -254,31 +261,28 @@ public final class ProcessCommand {
     // For JottaUI
     private func handleInteractivePrompts(line: String, inputPipe: Pipe) {
         if line.contains(strings.continueSyncSetup) {
-            let reply = input ?? "yes"
-            if let data = (reply + "\n").data(using: .utf8) {
-                inputPipe.fileHandleForWriting.write(data)
-            }
+            writeReply(input ?? "yes", to: inputPipe, shouldClose: false)
         }
 
         if line.contains(strings.chooseErrorReportingMode) {
-            let reply = syncmode ?? "full"
-            if let data = (reply + "\n").data(using: .utf8) {
-                inputPipe.fileHandleForWriting.write(data)
-            }
+            writeReply(syncmode ?? "full", to: inputPipe, shouldClose: false)
         }
 
         if line.contains(strings.continueSyncReset) {
-            let reply = input ?? "y"
-            if let data = (reply + "\n").data(using: .utf8) {
-                inputPipe.fileHandleForWriting.write(data)
-            }
+            writeReply(input ?? "y", to: inputPipe, shouldClose: false)
         }
 
         if line.contains(strings.theExistingSyncFolderOnJottacloudCom) {
-            let reply = input ?? "n"
-            if let data = (reply + "\n").data(using: .utf8) {
-                inputPipe.fileHandleForWriting.write(data)
-            }
+            writeReply(input ?? "n", to: inputPipe, shouldClose: true)
+        }
+    }
+
+    private func writeReply(_ reply: String, to inputPipe: Pipe, shouldClose: Bool) {
+        if let data = (reply + "\n").data(using: .utf8) {
+            inputPipe.fileHandleForWriting.write(data)
+        }
+        if shouldClose {
+            inputPipe.fileHandleForWriting.closeFile()
         }
     }
 
