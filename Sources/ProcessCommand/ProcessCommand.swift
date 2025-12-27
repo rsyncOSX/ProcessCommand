@@ -5,7 +5,7 @@
 import Foundation
 import OSLog
 
-public enum CommandError: LocalizedError {
+public enum CommandError: LocalizedError, Equatable {
     case executableNotFound
     case invalidExecutablePath(String)
     case processLaunchFailed(Error)
@@ -21,6 +21,21 @@ public enum CommandError: LocalizedError {
             "Failed to launch rsync process: \(error.localizedDescription)"
         case .outputEncodingFailed:
             "Failed to decode rsync output as UTF-8"
+        }
+    }
+
+    public static func == (lhs: CommandError, rhs: CommandError) -> Bool {
+        switch (lhs, rhs) {
+        case (.executableNotFound, .executableNotFound):
+            true
+        case let (.invalidExecutablePath(a), .invalidExecutablePath(b)):
+            a == b
+        case let (.processLaunchFailed(a), .processLaunchFailed(b)):
+            a.localizedDescription == b.localizedDescription
+        case (.outputEncodingFailed, .outputEncodingFailed):
+            true
+        default:
+            false
         }
     }
 }
@@ -138,7 +153,7 @@ public final class ProcessCommand {
             setupAsyncTasks(outputPipe, inputPipe, task)
             handlers.updateprocess(task)
         } catch let err {
-            let error = err
+            let error = CommandError.processLaunchFailed(err)
             inputPipe.fileHandleForWriting.closeFile()
             outputPipe.fileHandleForReading.closeFile()
             handlers.propogateerror(error)
