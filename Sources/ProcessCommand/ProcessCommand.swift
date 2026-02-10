@@ -329,9 +329,9 @@ public final class ProcessCommand {
     /// Fallback for SharedStrings — implement or replace with real strings
     struct SharedStrings {
         static let shared = SharedStrings()
-        let continueSyncSetup = "continue sync setup"
-        let chooseErrorReportingMode = "choose error reporting mode"
-        let continueSyncReset = "continue sync reset"
-        let theExistingSyncFolderOnJottacloudCom = "existing sync folder"
+        let continueSyncSetup = "Continue sync setup?"
+        let chooseErrorReportingMode = "Choose error reporting mode"
+        let continueSyncReset = "Continue sync reset"
+        let theExistingSyncFolderOnJottacloudCom = "The existing sync folder on jottacloud.com"
     }
 #endif
